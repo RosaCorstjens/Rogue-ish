@@ -6,18 +6,26 @@ using UnityEngine.UI;
 
 public class GameManager : MonoBehaviour
 {
+    // static reference to this instance 
+    // so it can be accessed throughout the whole code base
     internal static GameManager instance = null;
 
-    internal DungeonGenerator dungeon;
-    internal List<Creature> enemies;
-
+    // game play settings
     [SerializeField] internal float levelStartDelay = 2f;
     [SerializeField] internal float restartLevelDelay = 1f;
     [SerializeField] internal float scale = 0.16f;
+    [SerializeField] internal int finalFloor = 50;
 
-    private GameObject levelImage;
-    private Text levelText;
+    // references to content
+    internal DungeonGenerator dungeon;
+    internal List<Creature> enemies;
 
+    // references to UI elements
+    private GameObject fullscreenImage;
+    private Text fullscreenText;
+
+    // whether or not we're busy
+    // others are supposed to wait if we are
     private bool doingSetup;
 
     // settings to remember when switching levels
@@ -57,16 +65,16 @@ public class GameManager : MonoBehaviour
         // find references
         dungeon = GameObject.Find("Dungeon").GetComponent<DungeonGenerator>();
         dungeon.LoadAssets();
-        levelImage = GameObject.Find("LevelImage");
-        levelText = levelImage.GetComponentInChildren<Text>();
-        levelText.text = "Floor " + floor;
-        levelImage.gameObject.SetActive(true);
+        fullscreenImage = GameObject.Find("LevelImage");
+        fullscreenText = fullscreenImage.GetComponentInChildren<Text>();
+        fullscreenText.text = "Floor " + floor;
+        fullscreenImage.gameObject.SetActive(true);
 
         dungeon.GenerateDungeon(floor);
 
         yield return new WaitForSeconds(levelStartDelay);
 
-        levelImage.gameObject.SetActive(false);
+        fullscreenImage.gameObject.SetActive(false);
         doingSetup = false;
     }
 
@@ -80,6 +88,13 @@ public class GameManager : MonoBehaviour
 
     internal void NextFloor()
     {
+        // we finished the last floor!
+        if(floor == finalFloor)
+        {
+            Win();
+            return;
+        }
+
         StartCoroutine(GotoNextFloor());
     }
 
@@ -92,16 +107,16 @@ public class GameManager : MonoBehaviour
 
     internal void Win()
     {
-        levelText.text = "You beated the dungeon and slayed " + enemiesKilled + " on the way!";
-        levelImage.gameObject.SetActive(true);
+        fullscreenText.text = "You beated the dungeon and slayed " + enemiesKilled + " on the way!";
+        fullscreenImage.gameObject.SetActive(true);
 
         enabled = false;
     }
 
     internal void GameOver()
     {
-        levelText.text = "You made it to floor " + floor + "!";
-        levelImage.gameObject.SetActive(true);
+        fullscreenText.text = "You made it to floor " + floor + "!";
+        fullscreenImage.gameObject.SetActive(true);
 
         enabled = false;
     }
