@@ -10,6 +10,8 @@ public class Hero : Creature
     {
         base.Start();
 
+        GameManager.instance.hero = this;
+
         // set the health for the first floor, 
         // retrieve it for all the others
         if (GameManager.instance.floor == 1)
@@ -29,7 +31,9 @@ public class Hero : Creature
 
     private void Update()
     {
-        if (moving) return;
+        if (!GameManager.instance.herosTurn) return;
+
+        StartTurn();
 
         // get the input
         Coordinate moveDirection = Coordinate.zero;
@@ -44,6 +48,12 @@ public class Hero : Creature
         // TODO: interface for interaction and gone be the generic shit
         if (!moveDirection.Equals(Coordinate.zero))
             AttemptMove(moveDirection);
+    }
+
+    protected override void EndTurn()
+    {
+        base.EndTurn();
+        GameManager.instance.herosTurn = false;
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
@@ -83,6 +93,8 @@ public class Hero : Creature
     protected override IEnumerator OnCantMove(Creature other)
     {
         // TODO: deal damage?
+        EndTurn();
+
         yield return null;
     }
 }

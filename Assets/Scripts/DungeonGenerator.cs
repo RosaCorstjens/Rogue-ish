@@ -281,11 +281,11 @@ public class DungeonGenerator : MonoBehaviour
                     data.endFloor = 10;
                     break;
                 case Theme.Ice:
-                    data.startFloor = 5;
+                    data.startFloor = 0;
                     data.endFloor = 20;
                     break;
                 case Theme.Fire:
-                    data.startFloor = 15;
+                    data.startFloor = 0;
                     data.endFloor = 50;
                     break;
             }
@@ -488,7 +488,7 @@ public class DungeonGenerator : MonoBehaviour
 
             // spawn a random enemy
             // and add it to the game managers enemies
-            GameManager.instance.enemies.Add(InstantiateRandom(validEnemies.ToArray(), coordinate).GetComponent<Creature>());
+            InstantiateRandom(validEnemies.ToArray(), coordinate).GetComponent<Enemy>();
         }
     }
 

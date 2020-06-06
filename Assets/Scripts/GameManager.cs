@@ -13,12 +13,19 @@ public class GameManager : MonoBehaviour
     // game play settings
     [SerializeField] internal float levelStartDelay = 2f;
     [SerializeField] internal float restartLevelDelay = 1f;
+    [SerializeField] internal float turnDelay = 0.1f;
     [SerializeField] internal float scale = 0.16f;
     [SerializeField] internal int finalFloor = 50;
 
+    [Space]
+
+    [SerializeField] internal Color activeTurnColor = Color.yellow;
+    [SerializeField] internal Color targetedColor = Color.red;
+
     // references to content
     internal DungeonGenerator dungeon;
-    internal List<Creature> enemies;
+    internal List<Enemy> enemies;
+    internal Hero hero;
 
     // references to UI elements
     private GameObject fullscreenImage;
@@ -27,6 +34,10 @@ public class GameManager : MonoBehaviour
     // whether or not we're busy
     // others are supposed to wait if we are
     private bool doingSetup;
+
+    // whether or not it's the hero's turn
+    internal bool herosTurn;
+    private bool enemiesMoving;
 
     // settings to remember when switching levels
     internal int heroHealth = 5;
@@ -48,7 +59,7 @@ public class GameManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
 
         // set up enemies list
-        enemies = new List<Creature>();
+        enemies = new List<Enemy>();
 
         // let's get started
         StartCoroutine(StartFloor());
@@ -76,6 +87,7 @@ public class GameManager : MonoBehaviour
 
         fullscreenImage.gameObject.SetActive(false);
         doingSetup = false;
+        herosTurn = true;
     }
 
     private void OnLevelWasLoaded(int level)
@@ -120,4 +132,37 @@ public class GameManager : MonoBehaviour
 
         enabled = false;
     }
+
+    private void Update()
+    {
+        // don't update if we're waiting for hero or enemies
+        if (herosTurn || enemiesMoving)
+            return;
+
+        StartCoroutine(UpdateEnemies());
+    }
+
+    IEnumerator UpdateEnemies()
+    {
+        enemiesMoving = true;
+
+        yield return new WaitForSeconds(turnDelay);
+
+        if (enemies.Count == 0)
+        {
+            yield return new WaitForSeconds(turnDelay);
+        }
+
+        for (int i = 0; i < enemies.Count; i++)
+        {
+            if (!enemies[i].DoUpdate())
+                continue;
+
+            yield return new WaitForSeconds(enemies[i].moveTime);
+        }
+
+        herosTurn = true;
+        enemiesMoving = false;
+    }
+
 }

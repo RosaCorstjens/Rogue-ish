@@ -20,13 +20,14 @@ public class Enemy : Creature
         base.Start();
     }
 
-    private void Update()
+    internal bool DoUpdate()
     {
-        if (moving || attacking || target == null) return;
+        // only attempt to move if we're not busy and the target is close enough
+        if (moving || attacking || target == null || 
+            Coordinate.Distance(target.tile, tile) > noticeTargetRange)
+            return false;
 
-        // only attempt to move if the target is close enough
-        if (Coordinate.Distance(target.tile, tile) > noticeTargetRange)
-            return;
+        StartTurn();
 
         // determine direction
         Coordinate moveDirection = Coordinate.zero;
@@ -40,6 +41,8 @@ public class Enemy : Creature
 
         if (!moveDirection.Equals(Coordinate.zero))
             AttemptMove(moveDirection);
+
+        return true;
     }
 
     protected override IEnumerator OnCantMove(Creature other)
@@ -55,7 +58,9 @@ public class Enemy : Creature
 
             attacking = false;
         }
-            
+
+        EndTurn();
+
         yield return null;
     }
 

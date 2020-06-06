@@ -404,7 +404,7 @@ MonoBehaviour:
   levelStartDelay: 1
   restartLevelDelay: 1
   scale: 0.16
-  finalFloor: 1
+  finalFloor: 50
 --- !u!4 &1108395451
 Transform:
   m_ObjectHideFlags: 0
@@ -544,7 +544,7 @@ MonoBehaviour:
   width: 100
   height: 100
   numRooms:
-    min: 5
+    min: 10
     max: 10
   roomWidth:
     min: 3

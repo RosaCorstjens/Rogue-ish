@@ -10,9 +10,11 @@ using UnityEngine;
 public abstract class Creature : MonoBehaviour
 {
     [Header("Movement Settings")]
-    [SerializeField] private float moveTime = 0.5f;
-    [SerializeField] private float waitTime = 0.5f;
+    [SerializeField] internal float moveTime = 0.5f;
     [SerializeField] private LayerMask blockingLayer;
+
+    private GameObject targetGameObject;
+    private SpriteRenderer targetSpriteRender;
 
     protected bool moving = false;
     private float inverseMoveTime;
@@ -33,6 +35,10 @@ public abstract class Creature : MonoBehaviour
         health = GetComponent<Health>();
         health.Initialize();
 
+        targetGameObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/Target"), this.transform);
+        targetSpriteRender = targetGameObject.GetComponent<SpriteRenderer>();
+        targetGameObject.SetActive(false);
+
         inverseMoveTime = 1f / moveTime;
     }
 
@@ -43,6 +49,24 @@ public abstract class Creature : MonoBehaviour
 
     protected abstract void OnHealthChanged();
     protected abstract void OnDie();
+
+    protected void StartTurn()
+    {
+        targetGameObject.SetActive(true);
+        targetSpriteRender.color = GameManager.instance.activeTurnColor;
+    }
+
+    protected virtual void EndTurn()
+    {
+        targetGameObject.SetActive(false);
+    }
+
+    protected void SetTargeted(bool active)
+    {
+        targetGameObject.SetActive(active);
+        if (active)
+            targetSpriteRender.color = GameManager.instance.targetedColor;
+    }
 
     #region MOVE
     // returns true if it is able to move 
@@ -101,7 +125,7 @@ public abstract class Creature : MonoBehaviour
             yield return null;
         }
 
-        yield return new WaitForSeconds(waitTime);
+        EndTurn();
 
         moving = false;
     }
