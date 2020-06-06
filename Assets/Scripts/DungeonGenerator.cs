@@ -230,7 +230,6 @@ public class DungeonGenerator : MonoBehaviour
 
     [Header("Seed Settings")]
     [SerializeField] private bool randomizeSeed = false;
-    [SerializeField] private int seed = 80085;
 
     [Header("Dungeon Settings")]
     [SerializeField] private int width = 50;
@@ -245,8 +244,9 @@ public class DungeonGenerator : MonoBehaviour
     [SerializeField] private int enemyIncreasePerFloor = 2;
 
     [Header("Assets")]
-    [SerializeField] private GameObject hero;
-    [SerializeField] internal EnemyAssetData[] enemies;
+    [SerializeField] private GameObject heroPrefab;
+    [SerializeField] internal EnemyAssetData[] enemyAssetDatas;
+    [SerializeField] private GameObject itemPrefab;
 
     private List<GameObject> validEnemies;
     private Dictionary<Theme, ThematicAssetData> thematicAssets;
@@ -281,11 +281,11 @@ public class DungeonGenerator : MonoBehaviour
                     data.endFloor = 10;
                     break;
                 case Theme.Ice:
-                    data.startFloor = 0;
+                    data.startFloor = 10;
                     data.endFloor = 20;
                     break;
                 case Theme.Fire:
-                    data.startFloor = 0;
+                    data.startFloor = 20;
                     data.endFloor = 50;
                     break;
             }
@@ -294,12 +294,12 @@ public class DungeonGenerator : MonoBehaviour
         }
     }
 
-    internal void GenerateDungeon(int floor)
+    internal void GenerateDungeon(int floor, bool first)
     {
         // setup the seed 
-        if (randomizeSeed)
-            seed = Random.Range(0, 10000);
-        Random.InitState(seed);
+        if (randomizeSeed && !first)
+            GameManager.instance.saveData.lastSeed = Random.Range(0, 10000);
+        Random.InitState(GameManager.instance.saveData.lastSeed);
 
         // setup grid
         grid = new bool[width, height];
@@ -418,8 +418,8 @@ public class DungeonGenerator : MonoBehaviour
         // find all theme's that may occur on this floor
         foreach(KeyValuePair<Theme, ThematicAssetData> t in thematicAssets)
         {
-            if(t.Value.startFloor <= GameManager.instance.floor && 
-                t.Value.endFloor >= GameManager.instance.floor)
+            if(t.Value.startFloor <= GameManager.instance.saveData.floor && 
+                t.Value.endFloor >= GameManager.instance.saveData.floor)
             {
                 validThemes.Add(t.Key);
             }
@@ -428,7 +428,7 @@ public class DungeonGenerator : MonoBehaviour
         // mssg if we didn't find a valid theme
         if(validThemes.Count == 0)
         {
-            Debug.LogError("No valid theme for floor " + GameManager.instance.floor);
+            Debug.LogError("No valid theme for floor " + GameManager.instance.saveData.floor);
 
             // and add default as valid so we can continue
             validThemes.Add(Theme.Default);
@@ -440,10 +440,10 @@ public class DungeonGenerator : MonoBehaviour
         // find all enemies for this theme
         validEnemies.Clear();
 
-        for(int i = 0; i < enemies.Length; i++)
+        for(int i = 0; i < enemyAssetDatas.Length; i++)
         {
-            if (enemies[i].validThemes.Contains(theme))
-                validEnemies.Add(enemies[i].enemy);
+            if (enemyAssetDatas[i].validThemes.Contains(theme))
+                validEnemies.Add(enemyAssetDatas[i].enemy);
         }
     }
 
@@ -478,7 +478,7 @@ public class DungeonGenerator : MonoBehaviour
         SpawnExit();
 
         // calculate amount of enemies based on floor
-        int enemyAmount = GameManager.instance.floor * enemyIncreasePerFloor + baseEnemyCount.GetRndm();
+        int enemyAmount = GameManager.instance.saveData.floor * enemyIncreasePerFloor + baseEnemyCount.GetRndm();
 
         // spawn enemies randomly, but not in start / end room
         for(int i = 0; i < enemyAmount; i++)
@@ -490,12 +490,16 @@ public class DungeonGenerator : MonoBehaviour
             // and add it to the game managers enemies
             InstantiateRandom(validEnemies.ToArray(), coordinate).GetComponent<Enemy>();
         }
+
+        // spawn a random item in the same room as the hero
+        Item item = GameObject.Instantiate(itemPrefab, GetWorldPosition(rooms[0].GetRandomTile()), Quaternion.identity).GetComponent<Item>();
+        item.Initialize(GameManager.instance.itemDatabase.items[Random.Range(0, GameManager.instance.itemDatabase.items.Length)]);
     }
 
     private void SpawnHero()
     {
         Coordinate startPos = rooms[0].GetCenterTile();
-        GameObject.Instantiate(hero, GetWorldPosition(startPos), Quaternion.identity);
+        GameObject.Instantiate(heroPrefab, GetWorldPosition(startPos), Quaternion.identity);
     }
 
     private void SpawnExit()

@@ -403,8 +403,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   levelStartDelay: 1
   restartLevelDelay: 1
+  turnDelay: 0.1
   scale: 0.16
   finalFloor: 50
+  itemDatabasePath: /items.json
+  saveDataPath: /saveData.json
+  activeTurnColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 0.29803923}
+  targetedColor: {r: 1, g: 0, b: 0, a: 0.29803923}
 --- !u!4 &1108395451
 Transform:
   m_ObjectHideFlags: 0
@@ -540,7 +545,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   randomizeSeed: 1
-  seed: 80085
   width: 100
   height: 100
   numRooms:
@@ -559,16 +563,19 @@ MonoBehaviour:
     min: 3
     max: 5
   enemyIncreasePerFloor: 1
-  hero: {fileID: 5448104687986970751, guid: 1c6ecbc0a2416ba4daa01af311d43de8, type: 3}
-  enemies:
-  - validThemes: 02000000
-    enemy: {fileID: 4250157894511448626, guid: 84d7adda7b0acce439ea52cf1a8699d9, type: 3}
+  heroPrefab: {fileID: 5448104687986970751, guid: 1c6ecbc0a2416ba4daa01af311d43de8,
+    type: 3}
+  enemyAssetDatas:
   - validThemes: 02000000
     enemy: {fileID: 4250157894511448626, guid: 7c39df655b6373d4f8189e00ed701cdf, type: 3}
   - validThemes: 01000000
     enemy: {fileID: 4250157894511448626, guid: ba4b2e48b908e6240b7d30288ef4707e, type: 3}
+  - validThemes: 02000000
+    enemy: {fileID: 4250157894511448626, guid: 84d7adda7b0acce439ea52cf1a8699d9, type: 3}
   - validThemes: 00000000
     enemy: {fileID: 4250157894511448626, guid: 5d75ceca40a06c648a7caf7e76257b6b, type: 3}
+  itemPrefab: {fileID: 7468934530851466478, guid: ae7e3f319dcbf574c83c946bcc4609ab,
+    type: 3}
 --- !u!1 &1741280693
 GameObject:
   m_ObjectHideFlags: 0

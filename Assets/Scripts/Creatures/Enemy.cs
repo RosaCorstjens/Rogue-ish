@@ -66,7 +66,7 @@ public class Enemy : Creature
 
     protected override void OnDie()
     {
-        GameManager.instance.enemiesKilled++;
+        GameManager.instance.saveData.enemiesKilled++;
         GameManager.instance.enemies.Remove(this);
 
         Destroy(this.gameObject);

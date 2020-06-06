@@ -1,8 +1,19 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System;
+
+[Serializable]
+public class SaveData
+{
+    public int lastSeed = 0;
+    public int floor = 0;
+    public int heroHealth = 5;
+    public int enemiesKilled = 0;
+}
 
 public class GameManager : MonoBehaviour
 {
@@ -19,14 +30,25 @@ public class GameManager : MonoBehaviour
 
     [Space]
 
+    [SerializeField] internal string itemDatabasePath = "/items.json";
+    [SerializeField] internal string saveDataPath = "/saveData.json";
+
+    [Space]
+
     [SerializeField] internal Color activeTurnColor = Color.yellow;
     [SerializeField] internal Color targetedColor = Color.red;
+    
+    // save data
+    internal SaveData saveData;
+
+    // items
+    internal ItemDatabase itemDatabase;
 
     // references to content
     internal DungeonGenerator dungeon;
     internal List<Enemy> enemies;
     internal Hero hero;
-
+    
     // references to UI elements
     private GameObject fullscreenImage;
     private Text fullscreenText;
@@ -38,11 +60,6 @@ public class GameManager : MonoBehaviour
     // whether or not it's the hero's turn
     internal bool herosTurn;
     private bool enemiesMoving;
-
-    // settings to remember when switching levels
-    internal int heroHealth = 5;
-    internal int enemiesKilled = 0;
-    internal int floor = 0;
 
     private void Awake()
     {
@@ -58,30 +75,64 @@ public class GameManager : MonoBehaviour
         // don't destroy when we reload
         DontDestroyOnLoad(gameObject);
 
+        // read save data
+        if(File.Exists(Application.dataPath + saveDataPath))
+        {
+            string json = File.ReadAllText(Application.dataPath + saveDataPath);
+            if (json != null)
+            {
+                saveData = JsonUtility.FromJson<SaveData>(json);
+                saveData.floor--;       // reduce by 1, since it's gonna increase when starting next floor
+            }
+        }
+        else
+            saveData = new SaveData();
+
+        // read item database
+        if(File.Exists(Application.dataPath + itemDatabasePath))
+        {
+            string json = File.ReadAllText(Application.dataPath + itemDatabasePath);
+            if (json != null)
+            {
+                itemDatabase = JsonUtility.FromJson<ItemDatabase>(json);
+            }
+        }
+        else
+        {
+            Debug.LogError("Item database doesn't exist");
+        }
+
+
         // set up enemies list
         enemies = new List<Enemy>();
 
         // let's get started
-        StartCoroutine(StartFloor());
+        StartCoroutine(StartFloor(true));
     }
 
-    private IEnumerator StartFloor()
+    private void OnApplicationQuit()
+    {
+        string json = JsonUtility.ToJson(saveData);
+        File.WriteAllText(Application.dataPath + saveDataPath, json);
+    }
+
+    private IEnumerator StartFloor(bool first)
     {
         // while doing setup, no interaction allowed
         doingSetup = true;
 
         // increase floor
-        floor++;
+        saveData.floor++;
 
         // find references
         dungeon = GameObject.Find("Dungeon").GetComponent<DungeonGenerator>();
         dungeon.LoadAssets();
         fullscreenImage = GameObject.Find("LevelImage");
         fullscreenText = fullscreenImage.GetComponentInChildren<Text>();
-        fullscreenText.text = "Floor " + floor;
+        fullscreenText.text = "Floor " + saveData.floor;
         fullscreenImage.gameObject.SetActive(true);
 
-        dungeon.GenerateDungeon(floor);
+        dungeon.GenerateDungeon(saveData.floor, first);
 
         yield return new WaitForSeconds(levelStartDelay);
 
@@ -95,13 +146,13 @@ public class GameManager : MonoBehaviour
         if (this != instance)
             return;
 
-        StartCoroutine(StartFloor());
+        StartCoroutine(StartFloor(false));
     }
 
     internal void NextFloor()
     {
         // we finished the last floor!
-        if(floor == finalFloor)
+        if(saveData.floor == finalFloor)
         {
             Win();
             return;
@@ -119,7 +170,7 @@ public class GameManager : MonoBehaviour
 
     internal void Win()
     {
-        fullscreenText.text = "You beated the dungeon and slayed " + enemiesKilled + " on the way!";
+        fullscreenText.text = "You beated the dungeon and slayed " + saveData.enemiesKilled + " on the way!";
         fullscreenImage.gameObject.SetActive(true);
 
         enabled = false;
@@ -127,7 +178,7 @@ public class GameManager : MonoBehaviour
 
     internal void GameOver()
     {
-        fullscreenText.text = "You made it to floor " + floor + "!";
+        fullscreenText.text = "You made it to floor " + saveData.floor + "!";
         fullscreenImage.gameObject.SetActive(true);
 
         enabled = false;

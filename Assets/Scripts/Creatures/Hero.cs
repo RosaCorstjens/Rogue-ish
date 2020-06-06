@@ -14,10 +14,10 @@ public class Hero : Creature
 
         // set the health for the first floor, 
         // retrieve it for all the others
-        if (GameManager.instance.floor == 1)
-            GameManager.instance.heroHealth = health.currentHealth;
+        if (GameManager.instance.saveData.floor == 1)
+            GameManager.instance.saveData.heroHealth = health.currentHealth;
         else
-            health.SetHealth(GameManager.instance.heroHealth);
+            health.SetHealth(GameManager.instance.saveData.heroHealth);
 
         healthUI = GameObject.FindObjectOfType<HealthUI>().GetComponent<HealthUI>();
         healthUI.Initialize(health.currentHealth, health.totalHealth);
@@ -26,7 +26,7 @@ public class Hero : Creature
     private void OnDisable()
     {
         // store variables in game manager before changing levels
-        GameManager.instance.heroHealth = health.currentHealth;
+        GameManager.instance.saveData.heroHealth = health.currentHealth;
     }
 
     private void Update()
