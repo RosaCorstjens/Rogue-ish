@@ -47,7 +47,7 @@ public struct Coordinate
 
 public class DungeonGenerator : MonoBehaviour
 { 
-    public enum Theme { Default, Ice, Fire }
+    public enum Theme { Default }
 
     [Serializable]
     public struct ThematicAssetData
@@ -246,7 +246,6 @@ public class DungeonGenerator : MonoBehaviour
     [Header("Assets")]
     [SerializeField] private GameObject heroPrefab;
     [SerializeField] internal EnemyAssetData[] enemyAssetDatas;
-    [SerializeField] private GameObject itemPrefab;
 
     private List<GameObject> validEnemies;
     private Dictionary<Theme, ThematicAssetData> thematicAssets;
@@ -279,14 +278,6 @@ public class DungeonGenerator : MonoBehaviour
                 case Theme.Default:
                     data.startFloor = 0;
                     data.endFloor = 10;
-                    break;
-                case Theme.Ice:
-                    data.startFloor = 10;
-                    data.endFloor = 20;
-                    break;
-                case Theme.Fire:
-                    data.startFloor = 20;
-                    data.endFloor = 50;
                     break;
             }
 
@@ -490,10 +481,6 @@ public class DungeonGenerator : MonoBehaviour
             // and add it to the game managers enemies
             InstantiateRandom(validEnemies.ToArray(), coordinate).GetComponent<Enemy>();
         }
-
-        // spawn a random item in the same room as the hero
-        Item item = GameObject.Instantiate(itemPrefab, GetWorldPosition(rooms[0].GetRandomTile()), Quaternion.identity).GetComponent<Item>();
-        item.Initialize(GameManager.instance.itemDatabase.items[Random.Range(0, GameManager.instance.itemDatabase.items.Length)]);
     }
 
     private void SpawnHero()

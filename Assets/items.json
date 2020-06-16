@@ -1,7 +1,0 @@
-{"items":[
-{"name":"Sword","description":"Tis a Sword","spritePath":"weapon_anime_sword"},
-{"name":"Axe","description":"Tis an Axe","spritePath":"weapon_axe"},
-{"name":"Hammer","description":"Tis a Hammer","spritePath":"weapon_hammer"},
-{"name":"Knife","description":"Tis a Knife","spritePath":"weapon_knife"}
-]}
-

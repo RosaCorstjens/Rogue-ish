@@ -41,9 +41,6 @@ public class GameManager : MonoBehaviour
     // save data
     internal SaveData saveData;
 
-    // items
-    internal ItemDatabase itemDatabase;
-
     // references to content
     internal DungeonGenerator dungeon;
     internal List<Enemy> enemies;
@@ -87,21 +84,6 @@ public class GameManager : MonoBehaviour
         }
         else
             saveData = new SaveData();
-
-        // read item database
-        if(File.Exists(Application.dataPath + itemDatabasePath))
-        {
-            string json = File.ReadAllText(Application.dataPath + itemDatabasePath);
-            if (json != null)
-            {
-                itemDatabase = JsonUtility.FromJson<ItemDatabase>(json);
-            }
-        }
-        else
-        {
-            Debug.LogError("Item database doesn't exist");
-        }
-
 
         // set up enemies list
         enemies = new List<Enemy>();
