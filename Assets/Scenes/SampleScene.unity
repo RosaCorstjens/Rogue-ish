@@ -401,12 +401,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 017f37fe9b9b3f74d88de71f477ce9d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  levelStartDelay: 1
-  restartLevelDelay: 1
-  turnDelay: 0.1
+  levelStartDelay: 2
+  restartLevelDelay: 2
+  turnDelay: 0.5
   scale: 0.16
   finalFloor: 50
-  itemDatabasePath: /items.json
   saveDataPath: /saveData.json
   activeTurnColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 0.29803923}
   targetedColor: {r: 1, g: 0, b: 0, a: 0.29803923}
@@ -548,7 +547,7 @@ MonoBehaviour:
   width: 100
   height: 100
   numRooms:
-    min: 1
+    min: 2
     max: 2
   roomWidth:
     min: 3
@@ -562,7 +561,7 @@ MonoBehaviour:
   baseEnemyCount:
     min: 1
     max: 1
-  enemyIncreasePerFloor: 1
+  enemyIncreasePerFloor: 0
   heroPrefab: {fileID: 5448104687986970751, guid: 1c6ecbc0a2416ba4daa01af311d43de8,
     type: 3}
   enemyAssetDatas:

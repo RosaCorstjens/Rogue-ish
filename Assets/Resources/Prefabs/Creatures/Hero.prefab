@@ -181,6 +181,7 @@ MonoBehaviour:
   blockingLayer:
     serializedVersion: 2
     m_Bits: 256
+  totalActionPoints: 3
 --- !u!114 &1625455921522807319
 MonoBehaviour:
   m_ObjectHideFlags: 0

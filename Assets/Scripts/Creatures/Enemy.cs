@@ -20,14 +20,17 @@ public class Enemy : Creature
         base.Start();
     }
 
-    internal bool DoUpdate()
+    internal bool DoAction()
     {
-        // only attempt to move if we're not busy and the target is close enough
-        if (moving || attacking || target == null || 
-            Coordinate.Distance(target.tile, tile) > noticeTargetRange)
+        // we can't do anymore actions in this turn
+        if (currentActionPoints <= 0)
             return false;
 
-        StartTurn();
+        // only attempt to move if we're not busy and the target is close enough
+        if (moving || attacking || target == null || Coordinate.Distance(target.tile, tile) > noticeTargetRange)
+            return false;
+
+        StartAction();
 
         // determine direction
         Coordinate moveDirection = Coordinate.zero;
@@ -39,31 +42,34 @@ public class Enemy : Creature
         else
             moveDirection.x = target.tile.x > tile.x ? 1 : -1;
 
+        // attempt to move if we found a direction
         if (!moveDirection.Equals(Coordinate.zero))
             AttemptMove(moveDirection);
 
         return true;
     }
 
-    protected override IEnumerator OnCantMove(Creature other)
+    protected override IEnumerator OnHitAfterMoveAttempt(RaycastHit2D hit)
     {
         // deal damage to the player
-        if (other.gameObject.tag == "Player")
+        if (hit.transform.tag == "Player")
         {
-            other.ChangeHealth(-attackDamage);
+            hit.transform.GetComponent<Hero>().ChangeHealth(-attackDamage);
 
-            attacking = true;
+            attacking = inAction = true;
 
             yield return new WaitForSeconds(attackCooldown);
 
-            attacking = false;
+            attacking = inAction = false;
         }
 
-        EndTurn();
+        // should we just end the action
+        EndAction();
 
         yield return null;
     }
 
+    #region HEALTH
     protected override void OnDie()
     {
         GameManager.instance.saveData.enemiesKilled++;
@@ -76,4 +82,5 @@ public class Enemy : Creature
     {
         // nothing to see here!
     }
+    #endregion
 }

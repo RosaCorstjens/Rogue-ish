@@ -108,11 +108,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   moveTime: 1
-  waitTime: 0.5
   blockingLayer:
     serializedVersion: 2
     m_Bits: 256
+  totalActionPoints: 2
   attackDamage: 1
+  attackCooldown: 1
   noticeTargetRange: 5
 --- !u!1 &6019523140614346747
 GameObject:

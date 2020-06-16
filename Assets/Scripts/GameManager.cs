@@ -22,15 +22,17 @@ public class GameManager : MonoBehaviour
     internal static GameManager instance = null;
 
     // game play settings
-    [SerializeField] internal float levelStartDelay = 2f;
-    [SerializeField] internal float restartLevelDelay = 1f;
+    [SerializeField] internal float levelStartDelay = 5f;
+    [SerializeField] internal float restartLevelDelay = 5f;
     [SerializeField] internal float turnDelay = 0.1f;
-    [SerializeField] internal float scale = 0.16f;
-    [SerializeField] internal int finalFloor = 50;
 
     [Space]
 
-    [SerializeField] internal string itemDatabasePath = "/items.json";
+    [SerializeField] internal float scale = 0.16f;
+    [SerializeField] internal int finalFloor = 10;
+
+    [Space]
+
     [SerializeField] internal string saveDataPath = "/saveData.json";
 
     [Space]
@@ -55,8 +57,9 @@ public class GameManager : MonoBehaviour
     private bool doingSetup;
 
     // whether or not it's the hero's turn
-    internal bool herosTurn;
-    private bool enemiesMoving;
+    internal bool herosTurn = false;
+    private bool enemiesMoving = false;
+    private Coroutine enemiesMovingRoutine;
 
     private void Awake()
     {
@@ -72,18 +75,9 @@ public class GameManager : MonoBehaviour
         // don't destroy when we reload
         DontDestroyOnLoad(gameObject);
 
-        // read save data
-        if(File.Exists(Application.dataPath + saveDataPath))
-        {
-            string json = File.ReadAllText(Application.dataPath + saveDataPath);
-            if (json != null)
-            {
-                saveData = JsonUtility.FromJson<SaveData>(json);
-                saveData.floor--;       // reduce by 1, since it's gonna increase when starting next floor
-            }
-        }
-        else
-            saveData = new SaveData();
+        // read the save data, 
+        // keeps a reference for further use
+        ReadSaveData();
 
         // set up enemies list
         enemies = new List<Enemy>();
@@ -91,11 +85,12 @@ public class GameManager : MonoBehaviour
         // let's get started
         StartCoroutine(StartFloor(true));
     }
-
+    
     private void OnApplicationQuit()
     {
-        string json = JsonUtility.ToJson(saveData);
-        File.WriteAllText(Application.dataPath + saveDataPath, json);
+        // make sure the save data 
+        // is save in a file
+        WriteSaveData();
     }
 
     private IEnumerator StartFloor(bool first)
@@ -120,6 +115,8 @@ public class GameManager : MonoBehaviour
 
         fullscreenImage.gameObject.SetActive(false);
         doingSetup = false;
+
+        hero.StartTurn();
         herosTurn = true;
     }
 
@@ -150,6 +147,97 @@ public class GameManager : MonoBehaviour
         SceneManager.LoadScene(0);
     }
 
+    #region UPDATE
+    private void Update()
+    {
+        // don't update if we're waiting for something
+        if (herosTurn || enemiesMoving || doingSetup)
+            return;
+
+        // if we're doing neither, 
+        // start updating the enemies
+
+        // if we we're still updating the enemies 
+        // which can maybe happen if you switch floors and something goes wrong
+        // end the previous coroutine
+        if (enemiesMovingRoutine != null)
+        {
+            StopCoroutine(enemiesMovingRoutine);
+            enemiesMovingRoutine = null;
+        }
+            
+        // and start a new coroutine
+        enemiesMovingRoutine = StartCoroutine(UpdateEnemies());
+    }
+
+    internal void OnActionEnded()
+    {
+        enemies.ForEach(e => e.OnActionEnded());
+        hero.OnActionEnded();
+    }
+
+    IEnumerator UpdateEnemies()
+    {
+        // o.k. we're moving
+        enemiesMoving = true;
+
+        // start up for all the enemies
+        enemies.ForEach(e => e.StartTurn());
+
+        // wait for the turn delay 
+        // from hero to enemies
+        yield return new WaitForSeconds(turnDelay);
+
+        // keep track of whether there are still enemies to update
+        // always start assuming we're in the final action of this turn
+        bool finalAction = true;
+
+        // at least update once
+        do
+        {
+            finalAction = true;
+
+            // update each enemy one turn
+            for (int i = 0; i < enemies.Count; i++)
+            {
+                // if the enemy can't update for some reason, 
+                // (he ran out of action points for example)
+                // go to the next one
+                if (!enemies[i].DoAction())
+                    continue;
+                    
+                // wait while the current enemy is busy
+                while (enemies[i].inAction)
+                    yield return new WaitForEndOfFrame();
+
+                OnActionEnded();
+
+                // if the enemy still has action points, 
+                // this is not the final action
+                if (enemies[i].currentActionPoints > 0)
+                    finalAction = false;
+
+                // and wait for the turn delay
+                // from this enemy to the next enemy
+                yield return new WaitForSeconds(turnDelay);
+            }
+        }
+        // but stop when this is the final action
+        while (!finalAction);
+
+        // wait for the turn delay 
+        // from enemies to hero
+        yield return new WaitForSeconds(turnDelay);
+
+        // and we're done moving, 
+        // it's your turn now, hero!
+        hero.StartTurn();
+        herosTurn = true;
+        enemiesMoving = false;
+    }
+    #endregion
+
+    #region END_GAME
     internal void Win()
     {
         fullscreenText.text = "You beated the dungeon and slayed " + saveData.enemiesKilled + " on the way!";
@@ -165,37 +253,28 @@ public class GameManager : MonoBehaviour
 
         enabled = false;
     }
+    #endregion
 
-    private void Update()
+    #region SAVE_DATA
+    private void ReadSaveData()
     {
-        // don't update if we're waiting for hero or enemies
-        if (herosTurn || enemiesMoving)
-            return;
-
-        StartCoroutine(UpdateEnemies());
+        // read save data
+        if (File.Exists(Application.dataPath + saveDataPath))
+        {
+            string json = File.ReadAllText(Application.dataPath + saveDataPath);
+            if (json != null)
+            {
+                saveData = JsonUtility.FromJson<SaveData>(json);
+                saveData.floor--;       // reduce by 1, since it's gonna increase when starting next floor
+            }
+        }
+        else
+            saveData = new SaveData();
     }
 
-    IEnumerator UpdateEnemies()
+    private void WriteSaveData()
     {
-        enemiesMoving = true;
-
-        yield return new WaitForSeconds(turnDelay);
-
-        if (enemies.Count == 0)
-        {
-            yield return new WaitForSeconds(turnDelay);
-        }
-
-        for (int i = 0; i < enemies.Count; i++)
-        {
-            if (!enemies[i].DoUpdate())
-                continue;
-
-            yield return new WaitForSeconds(enemies[i].moveTime);
-        }
-
-        herosTurn = true;
-        enemiesMoving = false;
+        File.WriteAllText(Application.dataPath + saveDataPath, JsonUtility.ToJson(saveData));
     }
-
+    #endregion
 }

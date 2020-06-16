@@ -3,45 +3,59 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [RequireComponent(typeof(Health))]
-
 [RequireComponent(typeof(BoxCollider2D))]
 [RequireComponent(typeof(Rigidbody2D))]
 
 public abstract class Creature : MonoBehaviour
 {
+    // movement variabels
     [Header("Movement Settings")]
     [SerializeField] internal float moveTime = 0.5f;
     [SerializeField] private LayerMask blockingLayer;
-
-    private GameObject targetGameObject;
-    private SpriteRenderer targetSpriteRender;
-
     protected bool moving = false;
     private float inverseMoveTime;
 
+    // action points variabels
+    [Header("Action Point Settings")]
+    [SerializeField] protected int totalActionPoints = 1;
+    public int currentActionPoints { get; protected set; }
+
+    // whether or not we're currently busy
+    public bool inAction { get; protected set; }
+
+    // references to the highlight 
+    // used for turn indication and targeted indication
+    private GameObject highlightGameObject;
+    private SpriteRenderer highlightSpriteRender;
+
+    // references to components
     private new BoxCollider2D collider;
     private Rigidbody2D rigidBody;
     protected Animator anim;
     protected Health health;
 
+    // handy properties 
     internal Vector2 center { get { return collider.bounds.center; } }
     internal Coordinate tile { get { return GameManager.instance.dungeon.GetGridPosition(center); } }
 
     protected virtual void Start()
     {
+        // get components
         collider = GetComponent<BoxCollider2D>();
         rigidBody = GetComponent<Rigidbody2D>();
         anim = transform.Find("Creature").GetComponent<Animator>();
         health = GetComponent<Health>();
         health.Initialize();
 
-        targetGameObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/Target"), this.transform);
-        targetSpriteRender = targetGameObject.GetComponent<SpriteRenderer>();
-        targetGameObject.SetActive(false);
+        // create highlight
+        highlightGameObject = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/Target"), this.transform);
+        highlightSpriteRender = highlightGameObject.GetComponent<SpriteRenderer>();
+        highlightGameObject.SetActive(false);
 
         inverseMoveTime = 1f / moveTime;
     }
 
+    #region HEALTH
     internal virtual void ChangeHealth(int change)
     {
         health.ChangeHealth(change);
@@ -49,23 +63,45 @@ public abstract class Creature : MonoBehaviour
 
     protected abstract void OnHealthChanged();
     protected abstract void OnDie();
+    #endregion
 
-    protected void StartTurn()
+    #region TURN_BASED_SYSTEM
+    internal virtual void StartTurn()
     {
-        targetGameObject.SetActive(true);
-        targetSpriteRender.color = GameManager.instance.activeTurnColor;
+        // set action points
+        currentActionPoints = totalActionPoints;
     }
 
-    protected virtual void EndTurn()
+    protected virtual void StartAction()
     {
-        targetGameObject.SetActive(false);
+        // set the highlight object to 'its my turn'
+        highlightGameObject.SetActive(true);
+        highlightSpriteRender.color = GameManager.instance.activeTurnColor;
     }
+
+    protected virtual void EndAction()
+    {
+        // decreate action points per turn
+        // if actions have been performed the cost more action points
+        // that action will have removed them
+        currentActionPoints--;
+
+        // set the highlight object
+        highlightGameObject.SetActive(false);
+    }
+
+    internal virtual void OnActionEnded()
+    {
+
+    }
+    #endregion
 
     protected void SetTargeted(bool active)
     {
-        targetGameObject.SetActive(active);
+        // set the highlighted object as if targeted
+        highlightGameObject.SetActive(active);
         if (active)
-            targetSpriteRender.color = GameManager.instance.targetedColor;
+            highlightSpriteRender.color = GameManager.instance.targetedColor;
     }
 
     #region MOVE
@@ -81,14 +117,8 @@ public abstract class Creature : MonoBehaviour
         Vector2 start = transform.position;
         Vector2 end = start + new Vector2(direction.x * GameManager.instance.scale, direction.y * GameManager.instance.scale);
 
-        // disable collider so that linecast doesn't hit this object's own collider
-        //collider.enabled = false;
-
         // linecast for hitting the blocking layer
         hit = Physics2D.Linecast(center, end, blockingLayer);
-
-        // re-enable collider after linecast
-        //collider.enabled = true;
 
         // check for hit
         if (hit.transform == null)
@@ -110,7 +140,7 @@ public abstract class Creature : MonoBehaviour
         float sqrRemainingDistance = (transform.position - end).sqrMagnitude;
 
         anim.SetTrigger("move");
-        moving = true;
+        moving = inAction = true;
 
         // keep moving until we're very close
         while (sqrRemainingDistance > float.Epsilon)
@@ -125,12 +155,11 @@ public abstract class Creature : MonoBehaviour
             yield return null;
         }
 
-        EndTurn();
+        moving = inAction = false;
 
-        moving = false;
+        EndAction();
     }
 
-    // takes generic parameter to specify the type of component expected to interact with if blocked (e.g. Player for Enemies, Wall for Player)
     protected virtual bool AttemptMove(Coordinate direction)
     {
         RaycastHit2D hit;
@@ -138,22 +167,16 @@ public abstract class Creature : MonoBehaviour
         // store whether we can move in given direction
         bool canMove = Move(direction, out hit);
 
-        // check for hit and return if so
-        if (hit.transform == null)
-            return canMove;
-
-        // get a reference to the hit creature 
-        Creature hitComponent = hit.transform.GetComponent<Creature>();
-
         // if we can't move and we found something to interact with
         // deal with the consequences!@
-        if (!canMove && hitComponent != null)
-            StartCoroutine(OnCantMove(hitComponent));
+        if (!canMove && hit.transform != null)
+            StartCoroutine(OnHitAfterMoveAttempt(hit));
 
+        // and deal whether we could move
         return canMove;
     }
 
     // will be overriden by functions in the child classes
-    protected abstract IEnumerator OnCantMove(Creature other);
+    protected abstract IEnumerator OnHitAfterMoveAttempt(RaycastHit2D hit);
     #endregion
 }

@@ -31,9 +31,9 @@ public class Hero : Creature
 
     private void Update()
     {
-        if (!GameManager.instance.herosTurn) return;
+        if (!GameManager.instance.herosTurn || inAction) return;
 
-        StartTurn();
+        StartAction();
 
         // get the input
         Coordinate moveDirection = Coordinate.zero;
@@ -45,19 +45,67 @@ public class Hero : Creature
             moveDirection.y = 0;
 
         // attempt a move if we have input
-        // TODO: interface for interaction and gone be the generic shit
         if (!moveDirection.Equals(Coordinate.zero))
             AttemptMove(moveDirection);
     }
 
-    protected override void EndTurn()
+    protected override void EndAction()
     {
-        base.EndTurn();
-        GameManager.instance.herosTurn = false;
+        base.EndAction();
+
+        // make the hero wait the turn delay time in between actions
+        inAction = true;
+
+        StartCoroutine(WaitForEndAction());
+    }
+
+    private IEnumerator WaitForEndAction()
+    {
+        // wait 
+        yield return new WaitForSeconds(GameManager.instance.turnDelay);
+
+        // actually end the action
+        inAction = false;
+        GameManager.instance.OnActionEnded();
+
+        if (currentActionPoints <= 0)
+            GameManager.instance.herosTurn = false;
+
+        yield return null;
+    }
+
+    internal override void OnActionEnded()
+    {
+        base.OnActionEnded();
+
+        // if it's not our turn
+        if (GameManager.instance.herosTurn)
+            return;
+
+        // check to see whether we should be marked with an attack target
+        bool targeted = false;
+        foreach(Enemy enemy in GameManager.instance.enemies)
+        {
+            // if the enemy is in 1 distance of us, he can attack us directly
+            if(Coordinate.Distance(enemy.tile, this.tile) <= 1)
+            {
+                targeted = true;
+
+                // we don't wanna search for other enemies anymore, 
+                // we know we're in range of at least one
+                break;
+            }
+        }
+
+        // set the target marker accordingly
+        SetTargeted(targeted);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
     {
+        // we only get here for objects that didn't block our movement
+        // so at this point we basically walked on top of it
+
         // check with what we collided with
         if(collision.tag == "Exit")
         {
@@ -73,6 +121,7 @@ public class Hero : Creature
         }
     }
 
+    #region HEALTH
     internal override void ChangeHealth(int change)
     {
         if(change < 0)
@@ -89,11 +138,20 @@ public class Hero : Creature
     {
         GameManager.instance.GameOver();
     }
+    #endregion
 
-    protected override IEnumerator OnCantMove(Creature other)
+    protected override IEnumerator OnHitAfterMoveAttempt(RaycastHit2D hit)
     {
-        // TODO: deal damage?
-        EndTurn();
+        // if I collided with an enemy, 
+        // deal self dmg and end action
+        if(hit.transform.tag == "Enemy")
+        {
+            ChangeHealth(-1);
+            EndAction();
+        }
+
+        // else, don't do anything, 
+        // the player can still use this action point
 
         yield return null;
     }
