@@ -11,7 +11,7 @@ public abstract class Creature : MonoBehaviour
     // movement variabels
     [Header("Movement Settings")]
     [SerializeField] internal float moveTime = 0.5f;
-    [SerializeField] private LayerMask blockingLayer;
+    [SerializeField] protected LayerMask blockingLayer;
     protected bool moving = false;
     private float inverseMoveTime;
 
